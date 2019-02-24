@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            #canvas {
+                border: 1px solid black;
+            }
+        </style>
+        <script>
+            var W = 400;
+            var H = 400;
+            var FPS = 4;
+            var board_size = 20;
+            var food_count = 10;
+            var blocks_count = 10;
+            
+            var play = true;
+            function Snake(){
+                this.body = [[10, 10], [10, 11], [10, 12]];
+                this.dir = 'u';
+                this.update = function(){
+                    var head = this.body[0];
+                    var newhead;
+                    if (this.dir == 'u'){
+                        newhead = [head[0], head[1] - 1];
+                    }
+                    else if (this.dir == 'd'){
+                        newhead = [head[0], head[1] + 1];
+                    }
+                    else if (this.dir == 'r'){
+                        newhead = [head[0] + 1, head[1]];
+                    }
+                    else if (this.dir == 'l'){
+                        newhead = [head[0] - 1, head[1]];
+                    }
+                    if (newhead[0] < 0){
+                        newhead[0] = board_size -1;
+                    }
+                    if (newhead[0] >= board_size ){
+                        newhead[0] = 0;
+                    }
+                    if (newhead[1] < 0){
+                        newhead[1] = board_size -1;
+                    }
+                    if (newhead[1] >= board_size ){
+                        newhead[1] = 0;
+                    }
+                    this.body.unshift(newhead);
+                    if (!this.ate){
+                        this.body.splice(this.body.length - 1, 1);
+                    }
+                    else {
+                        this.ate = false;
+                    }
+                    for(var i = 1; i< this.body.length; i++){
+                        var b = this.body[i];
+                        var h = this.body[0];
+                        if(h[0] == b[0] && h[1] == b[1] ){
+                            this.body.splice(i, this.body.length - 1 - i);
+                                                    
+                        }
+                    }
+                }
+                this.draw = function(ctx){
+                    var cw = W / board_size;
+                    ctx.fillStyle = 'red';
+                    for (var b of this.body){
+                        ctx.fillRect(b[0] * cw, b[1] * cw,
+                                    cw*0.9, cw*0.9);
+                    }
+                }
+            }
+            function Food(x, y){
+                this.x = x;
+                this.y = y;
+                this.draw = function(ctx){
+                    var cw = W / board_size;
+                    ctx.fillStyle = '#11f';
+                    ctx.beginPath()
+                    ctx.arc(this.x * cw + cw/2, this.y * cw + cw/2,
+                            cw / 2, 0, Math.PI * 2)
+                    ctx.closePath()
+                    ctx.fill()
+                }
+            }
+            function Block(x , y){
+                this.x = x;
+                this.y = y;
+
+                this.draw = function(ctx){
+                    var cw = W / board_size;
+                    ctx.fillStyle = 'yellow';
+                    ctx.fillRect(this.x * cw, this.y * cw,
+                    cw, cw);
+                }
+
+            }
+            function randInt(b){
+                return Math.floor(Math.random() * b);
+            }
+            function onLoad(){
+                var canvas = document.getElementById('canvas');
+                var ctx = canvas.getContext('2d');
+                var snake = new Snake();
+                var feed = [];
+
+                var feed =[];
+                var blocks =[];
+
+                 
+                function drawScore(ctx){
+                    ctx.font = '30px Arial';
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(snake.body.length +'', W*0.1, H*0.1);
+                }
+
+                function updateFood(){
+                    while (feed.length < food_count){
+                        var x = randInt(board_size);
+                        var y = randInt(board_size);
+                        var f = new Food(x, y);
+                        feed.push(f);
+                    }
+                }
+
+               function setupBlocks(){
+                   for(var i = 0; i < blocks_count; i++){
+                        var x = randInt(board_size);
+                        var y = randInt(board_size);
+                        var b = new Block(x, y);
+                        blocks.push(b);
+
+                   }
+                }
+                function eat(){
+                    for (var i = 0; i < feed.length; i++){
+                        var f = feed[i];
+                        var head = snake.body[0];
+                        if (head[0] == f.x && head[1] == f.y){
+                            feed.splice(i, 1);
+                            i--;
+                            snake.ate = true;
+                           FPS *=1.02
+                            
+                        }
+                        
+                    }
+                }
+
+                function collisions(){
+                    for (var i = 0; i < blocks.length; i++){
+                        var b = blocks[i];
+                        var head = snake.body[0];
+                        if (head[0] == b.x && head[1] == b.y){
+                            play = false;
+                            
+                        }
+                    }
+                }
+                function draw(){
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(0, 0, W, H);
+                    updateFood();
+                    snake.update();
+                    eat();
+                    collisions();
+                    for (var f of feed){
+                        f.draw(ctx);
+                    }
+                    for (var b of blocks){
+                        b.draw(ctx);
+                    }
+                    console.log(feed);
+                    snake.draw(ctx);
+
+                    drawScore(ctx);
+                    if (play){
+                    setTimeout(draw, 1000/FPS);
+                    }
+                    
+                }
+                setupBlocks()
+
+                draw();
+                document.addEventListener('keydown', function(e){
+                    if (e.key == 'ArrowUp' && !snake.dir != 'd'){
+                        snake.dir = 'u';
+                    }
+                    else if (e.key == 'ArrowDown' && snake.dir != 'u'){
+                        snake.dir = 'd';
+                    }
+                    else if (e.key == 'ArrowRight' && snake.dir != 'l'){
+                        snake.dir = 'r';
+                    }
+                    else if (e.key == 'ArrowLeft' && snake.dir != 'r'){
+                        snake.dir = 'l';
+                    }
+                });
+                document.addEventListener('keyup', function(e){
+                   
+                });
+            }
+        </script>
+    </head>
+    <body>
+       <canvas id="canvas" width="400" height="400">
+       </canvas>
+       <script>
+           onLoad();
+       </script>
+    </body>
+</html>
